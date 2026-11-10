@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Quality gates for Tierwise.
+"""Quality gates for TierwiseAgents.
 
 Runs the project's checks (lint, types, tests, build, smoke test) in order and
 records which exact state of the code passed. A push is allowed only when the
@@ -169,7 +169,7 @@ def hook():
     except Exception:  # a broken check must not block unrelated work
         return
     if not allowed:
-        print(f"Push blocked by Tierwise: {why}. Run the quality gates "
+        print(f"Push blocked by TierwiseAgents: {why}. Run the quality gates "
               f"(python3 {Path(__file__).resolve()} --plan <plan file>), commit the state "
               "that passed, then push. Do not clear the gate record yourself; only the user "
               "may decide to push without passing gates.", file=sys.stderr)

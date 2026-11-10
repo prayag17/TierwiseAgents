@@ -1,10 +1,10 @@
-# Tierwise
+# TierwiseAgents
 
 **The right model for every job.** A Claude Code plugin that routes each piece of development work to the cheapest model tier that can do it well, and does not let the result be pushed until it has been tested and reviewed.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Most coding sessions run everything on one expensive model: the planning, the typing, the renaming, the re-running of tests. Only the first of those needs it. Tierwise splits the work:
+Most coding sessions run everything on one expensive model: the planning, the typing, the renaming, the re-running of tests. Only the first of those needs it. TierwiseAgents splits the work:
 
 - **Top tier decides.** One strong model makes the design decisions and writes them into a plan.
 - **Mid tier builds.** Tests, implementation, debugging and review follow that plan.
@@ -32,8 +32,8 @@ flowchart LR
 
 ```
 /plugin marketplace add prayag17/ModelOrchestrator
-/plugin install tierwise@prayag17
-/tierwise:orchestrate add rate limiting to the public API
+/plugin install tierwise-agents@prayag17
+/tierwise-agents:orchestrate add rate limiting to the public API
 ```
 
 ## The roles
@@ -65,10 +65,10 @@ flowchart LR
 
 ```
 /plugin marketplace add prayag17/ModelOrchestrator
-/plugin install tierwise@prayag17
+/plugin install tierwise-agents@prayag17
 ```
 
-Then run `/tierwise:orchestrate <task>`, or just describe a multi-step feature and the skill activates on its own. The plugin includes the agents and the push guard.
+Then run `/tierwise-agents:orchestrate <task>`, or just describe a multi-step feature and the skill activates on its own. The plugin includes the agents and the push guard.
 
 ### As a standalone skill
 
@@ -117,7 +117,7 @@ Any tier or role can run on another vendor's or a local model by pointing it at 
 }
 ```
 
-Tierwise hands that tool the same brief a Claude subagent would get, runs the acceptance check itself, and escalates on failure as usual. Models behind a Claude-compatible gateway also work by ID. Details and caveats are in [configuration](skills/orchestrate/references/configuration.md#non-claude-models).
+TierwiseAgents hands that tool the same brief a Claude subagent would get, runs the acceptance check itself, and escalates on failure as usual. Models behind a Claude-compatible gateway also work by ID. Details and caveats are in [configuration](skills/orchestrate/references/configuration.md#non-claude-models).
 
 ## Quality gates
 

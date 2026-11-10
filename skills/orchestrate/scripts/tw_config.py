@@ -1,4 +1,4 @@
-"""Shared config loading and model resolution for the Tierwise scripts.
+"""Shared config loading and model resolution for the TierwiseAgents scripts.
 
 Standard library only.
 """

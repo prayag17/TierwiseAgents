@@ -4,7 +4,7 @@ description: Route development work to the cheapest model that can do it well, a
 argument-hint: "[task description]"
 ---
 
-# Tierwise
+# TierwiseAgents
 
 You are the router. Spend expensive tokens only where they change the outcome: on decisions. Everything that is "follow these instructions" goes to a cheaper model, and nothing is pushed until the code has passed its gates. Keep your own context light: delegate reading, planning, editing and debugging, and never re-read what a subagent already summarized.
 
@@ -36,7 +36,7 @@ Run `python3 scripts/run_tier.py --show`. It reads `.claude/tierwise.json` (proj
 
 Defaults are `opus` (top), `sonnet` (mid), `haiku` (small). The script never returns `fable` unless the config allows it. An instruction from the user in this conversation ("plan with fable", "review with opus") overrides the file for this run; do not choose `fable` on your own.
 
-For an agent, use the first available: the project or user agent `tw-<role>`, then the plugin agent `tierwise:tw-<role>`. If neither exists, spawn `general-purpose` with the role's alias and paste the body of `agents/tw-<role>.md` at the top of the prompt.
+For an agent, use the first available: the project or user agent `tw-<role>`, then the plugin agent `tierwise-agents:tw-<role>`. If neither exists, spawn `general-purpose` with the role's alias and paste the body of `agents/tw-<role>.md` at the top of the prompt.
 
 Details, including non-Claude models: `references/configuration.md`.
 

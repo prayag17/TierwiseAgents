@@ -1,6 +1,6 @@
 ---
 name: tw-tester
-description: Mid-tier test author for Tierwise. Writes tests from the plan's acceptance criteria before the implementation exists, without seeing the builder's code, and proves they fail for the right reason. Use for tasks the plan marks as tests-first, and to add a regression test for a bug before it is fixed.
+description: Mid-tier test author for TierwiseAgents. Writes tests from the plan's acceptance criteria before the implementation exists, without seeing the builder's code, and proves they fail for the right reason. Use for tasks the plan marks as tests-first, and to add a regression test for a bug before it is fixed.
 tools: Read, Glob, Grep, Bash, Write, Edit
 model: sonnet
 effort: medium

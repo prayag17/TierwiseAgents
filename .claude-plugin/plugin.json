@@ -1,7 +1,7 @@
 {
-  "name": "tierwise",
-  "displayName": "Tierwise",
-  "version": "0.3.0",
+  "name": "tierwise-agents",
+  "displayName": "TierwiseAgents",
+  "version": "0.3.1",
   "description": "Routes development work to the cheapest model that can do it and gates it with tests and review before it is pushed.",
   "author": {
     "name": "prayag17",

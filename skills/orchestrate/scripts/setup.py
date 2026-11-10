@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Configure Tierwise.
+"""Configure TierwiseAgents.
 
 Writes tierwise.json and generates the tw-* agents with the chosen
 models pinned in their frontmatter. Standard library only.
