@@ -8,7 +8,7 @@
     {
       "name": "model-orchestrator",
       "source": "./",
-      "description": "Routes work to the cheapest model tier that can do it: a top model plans, a mid model builds, a small model handles chores."
+      "description": "Routes development work to the cheapest model that can do it and gates it with tests and review before it is pushed."
     }
   ]
 }

@@ -1,20 +1,32 @@
 # Model Orchestrator
 
-A Claude Code skill that sends each piece of work to the cheapest model that can do it well.
+A Claude Code skill that sends each piece of development work to the cheapest model that can do it well, and does not let the result be pushed until it has been tested and reviewed.
 
-| Tier | Agent | Default model | Does |
+| Role | Tier | Default model | Does |
 |---|---|---|---|
-| Top | `mo-architect` | `opus` (or `fable` if you allow it) | Plans features, makes design decisions, diagnoses hard bugs |
-| Mid | `mo-builder` | `sonnet` | Implements the written plan, writes tests |
-| Small | `mo-runner` | `haiku` | Renames, file moves, formatting, find and replace, boilerplate |
+| `mo-scout` | small | `haiku` | Maps the relevant code, conventions and check commands before planning |
+| `mo-architect` | top | `opus` (or `fable` if you allow it) | Makes the design decisions and writes the plan |
+| `mo-tester` | mid | `sonnet` | Writes tests from the plan before the code exists |
+| `mo-builder` | mid | `sonnet` | Implements one planned task |
+| `mo-runner` | small | `haiku` | Renames, file moves, formatting, find and replace, boilerplate |
+| `mo-debugger` | mid | `sonnet` | Finds the root cause of a failing check and fixes it |
+| `mo-reviewer` | mid | `sonnet` | Reviews the final diff against the plan, read-only |
 
-## How it works
+## The cycle
 
-1. **Triage.** Small edits are done inline, mechanical chores go straight to the small model, clearly specified work goes straight to the mid model. Only real design work reaches the top model.
-2. **Plan.** The architect explores the code and writes a self-contained plan to `.orchestrator/plans/<slug>.md`. Every task is tagged with a tier and has an acceptance check. You approve the task list before anything is built.
-3. **Execute.** Each task is handed to its tier with nothing but the plan path and task id. Independent tasks run in parallel.
-4. **Verify and escalate.** A task that fails its check or reports a blocker moves up one tier (small → mid → top). Nothing is retried at the same tier.
-5. **Report.** You get a table of which model ran what, and any escalations.
+```
+triage → scout → plan → your approval → tests first → build → gates → review → push
+ (you)  (small)  (top)                    (mid)      (mid/small) (script) (mid)
+```
+
+1. **Triage.** The cycle is sized to the task. A small edit is done inline, a rename goes straight to the small model, and only real design work gets the full cycle.
+2. **Scout.** A small model does the reading, so the top model does not spend its tokens exploring.
+3. **Plan.** The architect writes a self-contained plan: decisions, a risk level, the gates, and tasks that each name a role, a test mode and an acceptance check. You approve it before anything is built.
+4. **Tests first.** For tasks that warrant it, a tester writes failing tests from the plan without seeing the implementation. The builder must make them pass and may not edit them.
+5. **Build.** Each task goes to its role with nothing but the plan path and task id. Independent tasks run in parallel. A task that fails or is blocked moves up one step; nothing is retried by the same role.
+6. **Gates.** A script, not a model, runs lint, typecheck, tests, build and a smoke check, and records exactly which code passed. A failure goes to the debugger for a root cause. Weakening a check to make it pass is not allowed.
+7. **Review.** A fresh reviewer reads the diff against the plan and reports only real defects. High-risk changes are reviewed by the top model. Blockers are fixed, then the gates run again.
+8. **Push.** Only on your request, and only when the commit being pushed is the code that passed. With the plugin installed, a hook blocks `git push` otherwise.
 
 ## Install
 
@@ -25,17 +37,17 @@ A Claude Code skill that sends each piece of work to the cheapest model that can
 /plugin install model-orchestrator@prayag17
 ```
 
-Then run `/model-orchestrator:orchestrate <task>`, or just describe a multi-step feature and the skill activates on its own.
+Then run `/model-orchestrator:orchestrate <task>`, or just describe a multi-step feature and the skill activates on its own. The plugin includes the agents and the push guard.
 
 ### As a standalone skill
 
 ```bash
 git clone https://github.com/prayag17/ModelOrchestrator
 cp -r ModelOrchestrator/skills/orchestrate ~/.claude/skills/orchestrate   # or .claude/skills/ in a project
-python3 ~/.claude/skills/orchestrate/scripts/setup.py --scope user         # optional: installs the three agents
+python3 ~/.claude/skills/orchestrate/scripts/setup.py --scope user         # optional: installs the agents
 ```
 
-Then run `/orchestrate <task>`. Without the setup step the skill still works, using general-purpose subagents with the tier models.
+Then run `/orchestrate <task>`. Without the setup step the skill still works, using general-purpose subagents on the tier models. The standalone skill has no push hook; the gates are enforced by the skill's instructions only.
 
 ## Choosing models
 
@@ -44,6 +56,7 @@ Defaults are `opus` / `sonnet` / `haiku`. To change them, run the setup script f
 ```bash
 python3 scripts/setup.py --allow-fable                 # plan with Fable
 python3 scripts/setup.py --top claude-opus-5-5 --mid claude-sonnet-5-5 --small claude-haiku-5-5
+python3 scripts/setup.py --role reviewer=opus          # one role on a stronger model
 python3 scripts/setup.py --scope user                  # apply to all your projects
 ```
 
@@ -52,15 +65,16 @@ or write `.claude/model-orchestrator.json` yourself:
 ```json
 {
   "allowFable": true,
-  "tiers": { "mid": "sonnet", "small": "haiku" }
+  "tiers": { "mid": "sonnet", "small": "haiku" },
+  "roles": { "reviewer": "opus" }
 }
 ```
 
-Fable is never used unless `allowFable` is set or you ask for it in the request. Any model ID that `claude --model` accepts works.
+Fable is never used unless `allowFable` is set or you ask for it in the request. For a single run, just say so: "orchestrate this, plan with fable".
 
 ### Non-Claude models
 
-Any tier can run on another vendor's or a local model by pointing it at a coding agent CLI you already use (Codex CLI, Gemini CLI, opencode, aider, or your own script):
+Any tier or role can run on another vendor's or a local model by pointing it at a coding agent CLI you already use (Codex CLI, Gemini CLI, opencode, aider, or your own script):
 
 ```json
 {
@@ -74,24 +88,35 @@ Any tier can run on another vendor's or a local model by pointing it at a coding
 
 The orchestrator hands that tool the same brief a Claude subagent would get, runs the acceptance check itself, and escalates on failure as usual. Models behind a Claude-compatible gateway also work by ID. Details and caveats are in [configuration](skills/orchestrate/references/configuration.md#non-claude-models).
 
-For a single run, just say so: "orchestrate this, plan with fable".
+## Quality gates
+
+The architect writes the gates into each plan from the commands your project already has. To fix them for a project instead:
+
+```bash
+python3 scripts/setup.py --gate lint='npm run lint' --gate test='npm test' --gate build='npm run build'
+```
+
+Once a gate run has been recorded in a repository, Claude cannot `git push` unless the last run passed and `HEAD` is that same code. This guards pushes made by Claude; it does not replace branch protection on your Git host, and it does not cover deploy commands. See [quality gates](skills/orchestrate/references/configuration.md#quality-gates).
 
 ## Getting the most out of it
 
 - The session you type in is billed too. Since the planning is delegated, running the session itself on a mid-tier model (`/model sonnet`) saves the most.
 - Add `.orchestrator/` to your project's `.gitignore`, or commit the plans if you want a record.
-- The skill deliberately skips delegation for tiny edits: starting a cold subagent costs more than the edit.
+- Give the project a smoke check (a script that runs the real thing once). It is the gate that catches "tests pass but it does not work".
 
 ## Layout
 
 ```
 .claude-plugin/          plugin and marketplace manifests
+hooks/hooks.json         the push guard
 skills/orchestrate/
   SKILL.md               the router
-  agents/                mo-architect, mo-builder, mo-runner
+  agents/                the seven mo-* agents
   references/            plan format, configuration
   scripts/setup.py       writes config and pins models into the agents
-  scripts/run_tier.py    runs a tier on an external (non-Claude) CLI
+  scripts/gate.py        runs the gates and guards pushes
+  scripts/run_tier.py    resolves models; runs a role on an external CLI
+  scripts/mo_config.py   shared config loading
 ```
 
 ## License

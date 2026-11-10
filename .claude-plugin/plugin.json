@@ -1,18 +1,28 @@
 {
   "name": "model-orchestrator",
   "displayName": "Model Orchestrator",
-  "version": "0.1.0",
-  "description": "Routes work to the cheapest model tier that can do it: a top model plans, a mid model builds, a small model handles chores.",
+  "version": "0.2.0",
+  "description": "Routes development work to the cheapest model that can do it and gates it with tests and review before it is pushed.",
   "author": {
     "name": "prayag17",
     "url": "https://github.com/prayag17"
   },
   "repository": "https://github.com/prayag17/ModelOrchestrator",
   "license": "MIT",
-  "keywords": ["orchestration", "subagents", "model-routing", "cost", "tokens"],
+  "keywords": [
+    "orchestration",
+    "subagents",
+    "model-routing",
+    "cost",
+    "tokens"
+  ],
   "agents": [
     "./skills/orchestrate/agents/mo-architect.md",
+    "./skills/orchestrate/agents/mo-scout.md",
+    "./skills/orchestrate/agents/mo-tester.md",
     "./skills/orchestrate/agents/mo-builder.md",
-    "./skills/orchestrate/agents/mo-runner.md"
+    "./skills/orchestrate/agents/mo-runner.md",
+    "./skills/orchestrate/agents/mo-debugger.md",
+    "./skills/orchestrate/agents/mo-reviewer.md"
   ]
 }

@@ -10,24 +10,38 @@ The skill reads the first file that exists:
 ```json
 {
   "allowFable": false,
-  "tiers": {
-    "top": "opus",
-    "mid": "sonnet",
-    "small": "haiku"
-  }
+  "tiers": { "top": "opus", "mid": "sonnet", "small": "haiku" },
+  "roles": { "reviewer": "opus" },
+  "gates": [
+    { "name": "lint", "command": "npm run lint" },
+    { "name": "test", "command": "npm test" },
+    { "name": "build", "command": "npm run build" }
+  ]
 }
 ```
 
+Every key is optional.
+
 | Key | Meaning |
 |---|---|
-| `allowFable` | When true and `tiers.top` is not set, the top tier uses `fable`. Off by default, because Fable costs more and not every account has it. |
-| `tiers.top` / `tiers.mid` / `tiers.small` | What runs each tier. One of: a Claude alias (`fable`, `opus`, `sonnet`, `haiku`); any other model ID that `claude --model` accepts; or `{"command": "..."}` to run the tier on an external CLI (see "Non-Claude models"). Any key may be omitted. |
+| `allowFable` | When true, the top tier uses `fable` unless `tiers.top` says otherwise. Off by default, because Fable costs more and not every account has it. Fable is never used while this is false. |
+| `tiers.top` / `tiers.mid` / `tiers.small` | What runs each tier. One of: a Claude alias (`fable`, `opus`, `sonnet`, `haiku`); any other model ID that `claude --model` accepts; or `{"command": "..."}` to run the tier on an external CLI (see "Non-Claude models"). |
+| `roles.<role>` | Overrides the tier for one role, in the same three forms. |
+| `gates` | The checks that must pass before a push, run in order. When present, they replace the gates the architect writes into a plan. |
+
+Roles and their tiers:
+
+| Tier | Roles |
+|---|---|
+| top | `architect` |
+| mid | `builder`, `tester`, `reviewer`, `debugger` |
+| small | `scout`, `runner` |
 
 Defaults with no file: `opus` / `sonnet` / `haiku`.
 
 ## Setup script
 
-`scripts/setup.py` writes the config file and generates the three agents (`mo-architect`, `mo-builder`, `mo-runner`) with the chosen models pinned in their frontmatter. It needs only Python 3.
+`scripts/setup.py` writes the config file and generates the seven `mo-*` agents with the chosen models pinned in their frontmatter. It needs only Python 3. Running it again adds to the existing file in that scope.
 
 ```bash
 # Defaults (opus / sonnet / haiku) for this project
@@ -39,6 +53,9 @@ python3 scripts/setup.py --allow-fable
 # Custom models, for every project of this user
 python3 scripts/setup.py --scope user --top claude-opus-5-5 --mid claude-sonnet-5-5 --small claude-haiku-5-5
 
+# One role on a stronger model, and project-wide gates
+python3 scripts/setup.py --role reviewer=opus --gate lint='npm run lint' --gate test='npm test'
+
 # Show what would be written
 python3 scripts/setup.py --allow-fable --dry-run
 ```
@@ -49,6 +66,8 @@ python3 scripts/setup.py --allow-fable --dry-run
 | `--scope user` | Writes to `~/.claude/` |
 | `--top`, `--mid`, `--small` | Model for the tier |
 | `--top-cmd`, `--mid-cmd`, `--small-cmd` | Run the tier on an external command instead of a Claude model |
+| `--role ROLE=MODEL` | Override one role (repeatable) |
+| `--gate NAME=COMMAND` | Define the gates, in order (repeatable; replaces the existing list) |
 | `--allow-fable` | Sets `allowFable` and, unless `--top` is given, plans with `fable` |
 | `--dry-run` | Prints the result and writes nothing |
 
@@ -113,8 +132,8 @@ How it behaves:
 Test a command before relying on it:
 
 ```bash
-python3 scripts/run_tier.py --show                       # what each tier resolves to
-python3 scripts/run_tier.py --tier small --brief "Reply with the word ready and change nothing."
+python3 scripts/run_tier.py --show                       # what each role resolves to
+python3 scripts/run_tier.py --role runner --brief "Reply with the word ready and change nothing."
 ```
 
 ### 2. A gateway that serves other models to Claude Code
@@ -126,6 +145,40 @@ python3 scripts/setup.py --mid <gateway-model-id> --small <gateway-model-id>
 ```
 
 Be aware that Anthropic does not support routing Claude Code to non-Claude models through a gateway. It can work, but subagent features such as tool use and effort levels depend on how well the gateway and the model emulate the Claude API. Prefer the external command route unless you already run such a setup.
+
+## Quality gates
+
+`scripts/gate.py` runs the gates and records which exact state of the code passed.
+
+```bash
+python3 scripts/gate.py --plan .orchestrator/plans/<slug>.md   # run them
+python3 scripts/gate.py --status                               # last result, and whether HEAD may be pushed
+python3 scripts/gate.py --clear                                # forget the last result
+```
+
+- Gates come from `gates` in the config file; if that is empty, from the `## Gates` section of the plan.
+- They run in order through your shell, from the repository root, and stop at the first failure (`--keep-going` runs the rest). Each has a 30 minute limit (`--timeout`).
+- A run with no gates defined is an error, not a pass.
+- The result is stored inside `.git/`, so it is never committed and does not change your working tree.
+
+### The push guard
+
+With the plugin installed, a hook checks every `git push` that Claude runs:
+
+| Situation | Push |
+|---|---|
+| No gate run has ever been recorded in this repository | Allowed. The guard only applies once you use gates. |
+| The last gate run failed | Blocked |
+| The last run passed, but `HEAD` holds different code than the code that passed | Blocked |
+| The last run passed and `HEAD` matches it | Allowed |
+
+Changes under `.orchestrator/` are ignored in the comparison. To stop the guard for a repository, run `gate.py --clear` yourself; the skill tells Claude not to do that on its own.
+
+Limits to know about:
+
+- The guard covers pushes made by Claude inside Claude Code. It does not stop a push you type in your own terminal, and it does not see deploy commands. Protect production branches on your Git host as well.
+- It compares against `HEAD`, so it assumes you push the branch you are on.
+- As a standalone skill there is no hook; the skill's instructions still require a passing gate run before any push.
 
 ## One-off overrides
 

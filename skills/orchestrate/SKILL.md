@@ -1,98 +1,124 @@
 ---
 name: orchestrate
-description: Route work to the cheapest model tier that can do it well, to cut token cost. A top-tier model plans, a mid-tier model implements the written plan, and a small model handles mechanical chores such as renames, file moves, formatting and boilerplate. Use when the user asks to plan and build a feature, hands over multi-step or multi-file work, asks to save tokens or cost, or types /orchestrate. Skip for a single small edit or a quick question.
+description: Route development work to the cheapest model that can do it well, and gate it with tests and review before it is pushed. A top-tier model plans; mid-tier models write tests, implement, debug and review; a small model scouts the codebase and handles mechanical chores such as renames, file moves and formatting. Use when the user asks to plan and build a feature, hands over multi-step or multi-file work, wants changes tested before pushing, asks to save tokens or cost, or types /orchestrate. Skip for a single small edit or a quick question.
 argument-hint: "[task description]"
 ---
 
 # Model Orchestrator
 
-You are the router. Your job is to spend expensive tokens only where they change the outcome: on decisions. Everything that is "follow these instructions" goes to a cheaper model. Keep your own context light: delegate reading, planning and editing rather than doing them yourself, and never re-read what a subagent already summarized.
+You are the router. Spend expensive tokens only where they change the outcome: on decisions. Everything that is "follow these instructions" goes to a cheaper model, and nothing is pushed until the code has passed its gates. Keep your own context light: delegate reading, planning, editing and debugging, and never re-read what a subagent already summarized.
 
 Task: $ARGUMENTS
 
-## 1. Resolve the tier models
+## Roles
 
-Read the first config file that exists:
+| Role | Agent | Tier | Does |
+|---|---|---|---|
+| scout | `mo-scout` | small | Read-only map of the relevant code, conventions and check commands |
+| architect | `mo-architect` | top | Decisions and the plan file; last stop for escalations |
+| tester | `mo-tester` | mid | Tests written from the plan before the code exists |
+| builder | `mo-builder` | mid | Implements one planned task |
+| runner | `mo-runner` | small | Mechanical chores |
+| debugger | `mo-debugger` | mid | Root cause and minimal fix for a failing check |
+| reviewer | `mo-reviewer` | mid | Read-only review of the final diff against the plan |
 
-1. `.claude/model-orchestrator.json` (project)
-2. `~/.claude/model-orchestrator.json` (user)
+Scripts and references named below are in this skill's directory.
 
-```json
-{
-  "allowFable": false,
-  "tiers": { "top": "opus", "mid": "sonnet", "small": "haiku" }
-}
-```
+## 1. Resolve models
 
-Resolve each tier in this order:
+Run `python3 scripts/run_tier.py --show`. It reads `.claude/model-orchestrator.json` (project) or `~/.claude/model-orchestrator.json` (user) and prints, for each role, a `kind` and a `value`:
 
-- A value in `tiers` wins.
-- Otherwise `top` is `fable` when `allowFable` is true, else `opus`; `mid` is `sonnet`; `small` is `haiku`.
-- With no config file at all, use `opus` / `sonnet` / `haiku`.
-- An instruction from the user in this conversation ("use fable for planning", "build with opus") overrides the file for this run. Never pick `fable` unless the config or the user allowed it.
-
-A tier value takes one of three forms:
-
-| Form | Example | How to run it |
+| Kind | Meaning | How to run the role |
 |---|---|---|
-| Claude alias | `"sonnet"` | Spawn the tier's agent and pass the alias as `model`. |
-| Any other model ID | `"claude-sonnet-5-5"`, or an ID your gateway serves | The Agent tool's `model` parameter accepts only aliases, so the ID must be pinned in an agent file. Check that `.claude/agents/mo-<role>.md` or `~/.claude/agents/mo-<role>.md` exists with that model and spawn it without a `model` parameter. If it is missing, tell the user to run `scripts/setup.py` and use the tier's default alias meanwhile. |
-| External command | `{"command": "codex exec -m <model> {prompt}"}` | A non-Claude coding agent CLI. Run it through `scripts/run_tier.py` (section 5). |
+| `alias` | `fable`, `opus`, `sonnet` or `haiku` | Spawn the role's agent and pass the alias as `model`. |
+| `model` | Any other model ID | The Agent tool's `model` parameter accepts only aliases, so the ID must be pinned in `.claude/agents/mo-<role>.md` or `~/.claude/agents/mo-<role>.md`. Spawn that agent without a `model` parameter. If the file is missing, tell the user to run `scripts/setup.py` and use the tier's default alias meanwhile. |
+| `command` | An external, non-Claude coding agent CLI | `python3 scripts/run_tier.py --role <role> --brief "<brief>"` through Bash. |
 
-`python3 scripts/run_tier.py --show` (from this skill's directory) prints the resolved tiers as JSON if you want the file's rules applied for you. See `references/configuration.md` for setup, and for how non-Claude models are supported.
+Defaults are `opus` (top), `sonnet` (mid), `haiku` (small). The script never returns `fable` unless the config allows it. An instruction from the user in this conversation ("plan with fable", "review with opus") overrides the file for this run; do not choose `fable` on your own.
 
-## 2. Pick the agent for each tier
+For an agent, use the first available: the project or user agent `mo-<role>`, then the plugin agent `model-orchestrator:mo-<role>`. If neither exists, spawn `general-purpose` with the role's alias and paste the body of `agents/mo-<role>.md` at the top of the prompt.
 
-| Tier | Role | Agent |
-|---|---|---|
-| top | plan, design, diagnose | `mo-architect` |
-| mid | implement a written plan | `mo-builder` |
-| small | mechanical chores | `mo-runner` |
+Details, including non-Claude models: `references/configuration.md`.
 
-For a tier that runs on a Claude model, use the first that is available: the project or user agent `mo-<role>`, then the plugin agent `model-orchestrator:mo-<role>`. If neither exists (skill installed standalone, no setup run), spawn `general-purpose` with the tier's `model` alias and paste the body of `agents/mo-<role>.md` from this skill's directory at the top of the prompt.
+## 2. Triage
 
-## 3. Triage the task
+Classify before spending anything, and pick the lowest row that fits. The size of the cycle follows the size of the task.
 
-Classify before spending anything. Pick the lowest row that fits.
-
-| The task is | Route |
+| The task is | Cycle |
 |---|---|
-| A question, or an edit you can finish in under about 20 lines in one file | Do it yourself. A cold subagent costs more than the edit. |
-| Purely mechanical: rename, move or reorganize files, reformat, bulk find and replace, boilerplate from a pattern, updating imports | `small` directly, no plan |
-| Implementation with a clear spec already given (the user wrote the steps, or a plan file exists) | `mid` directly |
-| A feature, a refactor with design choices, anything ambiguous, cross-cutting or risky, or a bug with an unknown cause | `top` plans, then `mid` and `small` execute |
+| A question, or an edit under about 20 lines in one file | Do it yourself. A cold subagent costs more than the edit. Run the gates before any push if the project has them configured. |
+| Purely mechanical: rename, move or reorganize files, reformat, bulk replace, boilerplate from a pattern | runner → gates |
+| Implementation with a clear spec already given | builder (writes its own tests) → gates → reviewer |
+| A bug with an unknown cause | debugger (adds a regression test first) → gates → reviewer |
+| A feature, a refactor with design choices, anything ambiguous, cross-cutting or risky | Full cycle, sections 3 to 8 |
 
-When unsure between two tiers, start with the cheaper one: escalation is cheap, over-provisioning is not.
+When unsure between two rows, start with the cheaper one: escalation is cheap, over-provisioning is not.
 
-## 4. Plan (top tier)
+## 3. Scout (small)
 
-Spawn the architect with the user's request verbatim, any constraints from the conversation, and the plan path `.orchestrator/plans/<short-slug>.md`. The architect explores the codebase and writes the plan file in the format of `references/plan-format.md`: self-contained tasks, each tagged with a tier, exact files, steps and an acceptance check.
+Before planning in a codebase that has not been mapped for this request, spawn the scout with the request and the path `.orchestrator/context/<slug>.md`. It records the relevant files, conventions, test setup, check commands and which checks pass right now. Skip the scout for a tiny or empty repository, or when a context file for this area already exists.
 
-The architect returns only a short summary. Show the user the task list (id, tier, one line each) and the plan path, then ask for a go-ahead before building, unless they already said to proceed without asking. This checkpoint is the cheapest place to catch a wrong direction.
+A check that already fails before any change is a baseline failure. Tell the user now; do not let it be discovered at the gates and blamed on the new work.
 
-## 5. Execute (mid and small tiers)
+## 4. Plan (top)
+
+Spawn the architect with the user's request verbatim, constraints from the conversation, the context file path and the plan path `.orchestrator/plans/<slug>.md`. The plan follows `references/plan-format.md`: decisions, a risk level, the gates, and self-contained tasks, each with a role, a test mode and an acceptance check.
+
+Show the user the task list (id, role, one line each), the risk level, the gates and any open questions, then ask for a go-ahead before building, unless they already said to proceed without asking. This is the cheapest place to catch a wrong direction.
+
+## 5. Build
 
 For each task, in dependency order:
 
-- Spawn the agent for the task's tier with a brief that holds only the plan path, the task id, and "read the plan, do this task, run its acceptance check". Do not paste the plan or code into the brief: the agent reads the file itself.
-- Tasks the plan marks as parallel and that touch different files go out in one message as parallel spawns.
-- For a tier configured as an external command, run `python3 scripts/run_tier.py --tier <tier> --brief "<the same brief>"` with Bash instead of spawning an agent. The script adds the role instructions, runs the CLI and prints its exit code and the tail of its output. Run it in the background when the task may take more than a few minutes. External tools do not reliably follow the report format, so run the task's acceptance check yourself afterwards and treat a non-zero exit or a failing check as `FAILED`. Run external-command tasks that touch the same working tree one at a time.
-- Each agent ends with a report of `STATUS: DONE | FAILED | BLOCKED`, files changed, and the acceptance check output. Trust a Claude subagent's report; do not re-read the diff.
+- The brief holds only the plan path, the task id and "read the plan, do this task, run its acceptance check". Never paste the plan or code into a brief.
+- **Tests first.** For a task marked `Tests: first`, the tester's task runs before the builder's, and the builder must make those tests pass without editing them. The tester never sees the implementation; the builder never rewrites the tests. If the builder reports a test is wrong, send that to the architect, not back to the builder.
+- Tasks the plan marks as parallel and that touch different files go out in one message. Tasks on an external command that share a working tree run one at a time.
+- Each agent ends with `STATUS: DONE | FAILED | BLOCKED`, the files changed and the check output. Trust a Claude subagent's report; do not re-read the diff. For a role on an external command, run the task's acceptance check yourself and treat a non-zero exit or failing check as `FAILED`.
+- `FAILED` or `BLOCKED`: escalate one step, passing the previous report along. runner → builder → architect. Do not retry with the same role. A blocker that says the plan is wrong goes straight to the architect.
+- Mark each finished task `done` in the plan file.
 
-## 6. Verify and escalate
+## 6. Gates
 
-- `DONE` with a passing check: mark the task done in the plan file and move on.
-- `FAILED` or `BLOCKED`, or a check that does not pass: escalate that task one tier (`small` → `mid` → `top`), passing the previous agent's report so the next one does not repeat it. Do not retry at the same tier. Escalation works the same whether a tier is a Claude model or an external command.
-- If the `top` tier also fails, or a blocker says the plan itself is wrong, stop and bring it to the user with the evidence.
-- After the last task, run the plan's final check (full test suite, build or lint, as the plan names it) once.
+When all tasks are done, run:
 
-## 7. Report
+```
+python3 scripts/gate.py --plan .orchestrator/plans/<slug>.md
+```
 
-Finish with a short table: task, tier and model that ran it, result, and any escalation. Add one line on what was verified and anything left undone.
+It runs every gate in order (lint, types, tests, build, smoke check, as the config or the plan's `## Gates` section lists them), stops at the first failure, and records the exact state of the code that passed. This is the only thing that counts as "the checks pass"; an agent saying so does not.
+
+On a failure:
+
+- If the cause is plain from the output and belongs to one task (a lint error, a missed import), send it to that task's role with the output.
+- Otherwise spawn the debugger with the failing output and the plan path. It finds the root cause and applies the smallest fix.
+- Run the gates again. After two failed rounds on the same gate, escalate to the architect; if that also fails, stop and bring the evidence to the user.
+
+No one may make a gate pass by weakening it: no skipped or deleted tests, loosened assertions, lowered thresholds or silenced rules. A report that did so counts as `FAILED`.
+
+## 7. Review
+
+After the gates pass, spawn the reviewer with the plan path and the diff command (`git diff <base>...HEAD`, or `git diff HEAD` if nothing is committed yet). Use the top-tier model for the review when the plan says `Risk: high`.
+
+- `APPROVE`: continue. Mention any `SHOULD` items in the final report; do not fix them unasked.
+- `CHANGES_REQUIRED`: send the blockers to the builder (or the debugger if the cause is unclear), then run the gates again and have the reviewer check only the fix. Allow two review rounds, then bring what remains to the user.
+
+## 8. Ship
+
+Nothing leaves the machine until the gates have passed on exactly the code being pushed.
+
+1. Commit the gated state. Any edit after the last gate run, including review fixes, needs a new gate run first.
+2. Push or open a pull request only if the user asked for it. Never push to a production or default branch on your own initiative; prefer a feature branch and a pull request.
+3. With the plugin installed, a hook blocks `git push` when the last gate run failed or `HEAD` differs from the code that passed. If it blocks you, run the gates; never clear the gate record or route around the hook. Only the user may decide to push without passing gates.
+4. Deploy commands are not covered by the hook. Treat any deploy, release or publish step the same way: gates first, and only on the user's request.
+
+## 9. Report
+
+Finish with a short table: task, role and model that ran it, result, and any escalation. Then the gate results by name, the review verdict with any open `SHOULD` items, and what was and was not pushed.
 
 ## Rules that protect the savings
 
-- Never delegate upward by default. A task goes to `top` only through triage or escalation.
-- Never have two tiers do the same reading. The plan file is the only handoff.
+- Never delegate upward by default. Work reaches the top tier only through triage, high risk or escalation.
+- Never have two roles do the same reading. The context file and the plan file are the only handoffs.
 - Never let a subagent spawn further subagents.
-- The session you run in is billed too. If the user's session is on a top-tier model and most work is being delegated, mention once that `/model sonnet` for the session itself would save more.
+- Scale the cycle to the task. A rename does not need a scout, a tester and a reviewer.
+- The session you run in is billed too. If it is on a top-tier model and most work is delegated, mention once that `/model sonnet` for the session itself would save more.
