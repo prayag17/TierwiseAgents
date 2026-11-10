@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="TierwiseAgents: the right model for every job" width="100%">
+</p>
+
 # TierwiseAgents
 
 **The right model for every job.** A Claude Code plugin that routes each piece of development work to the cheapest model tier that can do it well, and does not let the result be pushed until it has been tested and reviewed.
