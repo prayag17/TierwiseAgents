@@ -95,3 +95,21 @@ img[~near] = INK                                            # clean margin, coas
 logo = up(img, S)
 logo.save(f"{OUT}/logo.png", optimize=True)
 logo.resize((512, 512), Image.NEAREST).save(f"{OUT}/logo-512.png", optimize=True)
+
+# ---------- social preview 1280x640 ----------
+S = 4; W, H = 320, 160
+z = terrain(W, H, [(0.82, 0.40, 0.13, 0.12, 1.0), (0.66, 0.84, 0.10, 0.09, 0.5),
+                   (1.00, 0.95, 0.09, 0.09, 0.5), (0.66, 0.02, 0.11, 0.08, 0.3)], seed=7)
+x = np.linspace(0, 1, W)[None, :].repeat(H, 0)
+img = render(z, np.clip((x - 0.60) / 0.17, 0.0, 1.0) ** 1.2)
+layer = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(layer); d.fontmode = "1"
+big = ImageFont.truetype(JB % "ExtraBold", 21)
+d.text((16, 50), "Tierwise", font=big, fill=BONE)
+d.text((16 + d.textlength("Tierwise", font=big), 50), "Agents", font=big, fill=RUST)
+for i, (col, wbar) in enumerate(((RUST, 20), (OCHRE, 44), (MOSS, 80))):
+    d.rectangle([16, 84 + i * 5, 16 + wbar, 86 + i * 5], fill=col)
+social = up(img, S).convert("RGBA"); social.alpha_composite(layer.resize((W * S, H * S), Image.NEAREST))
+d2 = ImageDraw.Draw(social)
+d2.text((64, 424), "THE RIGHT MODEL FOR EVERY JOB", font=ImageFont.truetype(JB % "Medium", 26), fill=BONE)
+d2.text((64, 464), "plan on top  ·  build on mid  ·  chores on small", font=ImageFont.truetype(JB % "Regular", 20), fill=(150, 160, 148))
+social.convert("RGB").save(f"{OUT}/social-preview.png", optimize=True)
