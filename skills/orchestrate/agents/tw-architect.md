@@ -1,6 +1,6 @@
 ---
-name: mo-architect
-description: Top-tier planner for the model orchestrator. Explores the codebase, makes the design decisions and writes a self-contained implementation plan file whose tasks are tagged by model tier. Also takes escalated tasks that cheaper tiers could not finish. Use for feature planning, architecture, risky refactors and bugs with an unknown cause.
+name: tw-architect
+description: Top-tier planner for Tierwise. Explores the codebase, makes the design decisions and writes a self-contained implementation plan file whose tasks are tagged by model tier. Also takes escalated tasks that cheaper tiers could not finish. Use for feature planning, architecture, risky refactors and bugs with an unknown cause.
 tools: Read, Glob, Grep, Bash, Write, Edit, WebFetch, WebSearch
 model: opus
 effort: high

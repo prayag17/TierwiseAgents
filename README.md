@@ -1,30 +1,61 @@
-# Model Orchestrator
+# Tierwise
 
-A Claude Code skill that sends each piece of development work to the cheapest model that can do it well, and does not let the result be pushed until it has been tested and reviewed.
+**The right model for every job.** A Claude Code plugin that routes each piece of development work to the cheapest model tier that can do it well, and does not let the result be pushed until it has been tested and reviewed.
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+Most coding sessions run everything on one expensive model: the planning, the typing, the renaming, the re-running of tests. Only the first of those needs it. Tierwise splits the work:
+
+- **Top tier decides.** One strong model makes the design decisions and writes them into a plan.
+- **Mid tier builds.** Tests, implementation, debugging and review follow that plan.
+- **Small tier does the chores.** Reading the codebase, renames, moves, formatting.
+- **A script, not a model, says "it passes".** Lint, types, tests, build and a smoke check gate every push.
+
+Works with any Claude model, and with non-Claude models through the coding CLIs you already use (Codex CLI, Gemini CLI, opencode, aider).
+
+```mermaid
+flowchart LR
+    T[Triage] --> S[Scout<br/>small]
+    S --> P[Plan<br/>top]
+    P --> A{You approve}
+    A --> TE[Tests first<br/>mid]
+    TE --> B[Build<br/>mid / small]
+    B --> G{Gates<br/>script}
+    G -- fail --> D[Debug<br/>mid]
+    D --> G
+    G -- pass --> R[Review<br/>mid]
+    R -- blockers --> B
+    R -- approve --> PU[Push]
+```
+
+## Quick start
+
+```
+/plugin marketplace add prayag17/ModelOrchestrator
+/plugin install tierwise@prayag17
+/tierwise:orchestrate add rate limiting to the public API
+```
+
+## The roles
 
 | Role | Tier | Default model | Does |
 |---|---|---|---|
-| `mo-scout` | small | `haiku` | Maps the relevant code, conventions and check commands before planning |
-| `mo-architect` | top | `opus` (or `fable` if you allow it) | Makes the design decisions and writes the plan |
-| `mo-tester` | mid | `sonnet` | Writes tests from the plan before the code exists |
-| `mo-builder` | mid | `sonnet` | Implements one planned task |
-| `mo-runner` | small | `haiku` | Renames, file moves, formatting, find and replace, boilerplate |
-| `mo-debugger` | mid | `sonnet` | Finds the root cause of a failing check and fixes it |
-| `mo-reviewer` | mid | `sonnet` | Reviews the final diff against the plan, read-only |
+| `tw-scout` | small | `haiku` | Maps the relevant code, conventions and check commands before planning |
+| `tw-architect` | top | `opus` (or `fable` if you allow it) | Makes the design decisions and writes the plan |
+| `tw-tester` | mid | `sonnet` | Writes tests from the plan before the code exists |
+| `tw-builder` | mid | `sonnet` | Implements one planned task |
+| `tw-runner` | small | `haiku` | Renames, file moves, formatting, find and replace, boilerplate |
+| `tw-debugger` | mid | `sonnet` | Finds the root cause of a failing check and fixes it |
+| `tw-reviewer` | mid | `sonnet` | Reviews the final diff against the plan, read-only |
 
 ## The cycle
-
-```
-triage → scout → plan → your approval → tests first → build → gates → review → push
- (you)  (small)  (top)                    (mid)      (mid/small) (script) (mid)
-```
 
 1. **Triage.** The cycle is sized to the task. A small edit is done inline, a rename goes straight to the small model, and only real design work gets the full cycle.
 2. **Scout.** A small model does the reading, so the top model does not spend its tokens exploring.
 3. **Plan.** The architect writes a self-contained plan: decisions, a risk level, the gates, and tasks that each name a role, a test mode and an acceptance check. You approve it before anything is built.
 4. **Tests first.** For tasks that warrant it, a tester writes failing tests from the plan without seeing the implementation. The builder must make them pass and may not edit them.
 5. **Build.** Each task goes to its role with nothing but the plan path and task id. Independent tasks run in parallel. A task that fails or is blocked moves up one step; nothing is retried by the same role.
-6. **Gates.** A script, not a model, runs lint, typecheck, tests, build and a smoke check, and records exactly which code passed. A failure goes to the debugger for a root cause. Weakening a check to make it pass is not allowed.
+6. **Gates.** A script runs lint, typecheck, tests, build and a smoke check, and records exactly which code passed. A failure goes to the debugger for a root cause. Weakening a check to make it pass is not allowed.
 7. **Review.** A fresh reviewer reads the diff against the plan and reports only real defects. High-risk changes are reviewed by the top model. Blockers are fixed, then the gates run again.
 8. **Push.** Only on your request, and only when the commit being pushed is the code that passed. With the plugin installed, a hook blocks `git push` otherwise.
 
@@ -34,10 +65,10 @@ triage → scout → plan → your approval → tests first → build → gates 
 
 ```
 /plugin marketplace add prayag17/ModelOrchestrator
-/plugin install model-orchestrator@prayag17
+/plugin install tierwise@prayag17
 ```
 
-Then run `/model-orchestrator:orchestrate <task>`, or just describe a multi-step feature and the skill activates on its own. The plugin includes the agents and the push guard.
+Then run `/tierwise:orchestrate <task>`, or just describe a multi-step feature and the skill activates on its own. The plugin includes the agents and the push guard.
 
 ### As a standalone skill
 
@@ -60,7 +91,7 @@ python3 scripts/setup.py --role reviewer=opus          # one role on a stronger 
 python3 scripts/setup.py --scope user                  # apply to all your projects
 ```
 
-or write `.claude/model-orchestrator.json` yourself:
+or write `.claude/tierwise.json` yourself:
 
 ```json
 {
@@ -86,7 +117,7 @@ Any tier or role can run on another vendor's or a local model by pointing it at 
 }
 ```
 
-The orchestrator hands that tool the same brief a Claude subagent would get, runs the acceptance check itself, and escalates on failure as usual. Models behind a Claude-compatible gateway also work by ID. Details and caveats are in [configuration](skills/orchestrate/references/configuration.md#non-claude-models).
+Tierwise hands that tool the same brief a Claude subagent would get, runs the acceptance check itself, and escalates on failure as usual. Models behind a Claude-compatible gateway also work by ID. Details and caveats are in [configuration](skills/orchestrate/references/configuration.md#non-claude-models).
 
 ## Quality gates
 
@@ -101,7 +132,7 @@ Once a gate run has been recorded in a repository, Claude cannot `git push` unle
 ## Getting the most out of it
 
 - The session you type in is billed too. Since the planning is delegated, running the session itself on a mid-tier model (`/model sonnet`) saves the most.
-- Add `.orchestrator/` to your project's `.gitignore`, or commit the plans if you want a record.
+- Add `.tierwise/` to your project's `.gitignore`, or commit the plans if you want a record.
 - Give the project a smoke check (a script that runs the real thing once). It is the gate that catches "tests pass but it does not work".
 
 ## Layout
@@ -111,13 +142,17 @@ Once a gate run has been recorded in a repository, Claude cannot `git push` unle
 hooks/hooks.json         the push guard
 skills/orchestrate/
   SKILL.md               the router
-  agents/                the seven mo-* agents
+  agents/                the seven tw-* agents
   references/            plan format, configuration
   scripts/setup.py       writes config and pins models into the agents
   scripts/gate.py        runs the gates and guards pushes
   scripts/run_tier.py    resolves models; runs a role on an external CLI
-  scripts/mo_config.py   shared config loading
+  scripts/tw_config.py   shared config loading
 ```
+
+## Contributing
+
+Issues and pull requests are welcome, especially command shapes for other coding CLIs and reports from real projects on where a cheaper tier was enough and where it was not.
 
 ## License
 

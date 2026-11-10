@@ -1,4 +1,4 @@
-"""Shared config loading and model resolution for the model orchestrator scripts.
+"""Shared config loading and model resolution for the Tierwise scripts.
 
 Standard library only.
 """
@@ -19,11 +19,11 @@ ROLE_TIER = {
 }
 ALIASES = {"fable", "opus", "sonnet", "haiku"}
 SKILL_DIR = Path(__file__).resolve().parent.parent
-CONFIG_NAME = "model-orchestrator.json"
+CONFIG_NAME = "tierwise.json"
 
 
 def agent_name(role):
-    return f"mo-{role}"
+    return f"tw-{role}"
 
 
 def load_config(start=None):

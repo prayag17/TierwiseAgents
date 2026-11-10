@@ -4,8 +4,8 @@
 
 The skill reads the first file that exists:
 
-1. `.claude/model-orchestrator.json` in the project
-2. `~/.claude/model-orchestrator.json`
+1. `.claude/tierwise.json` in the project
+2. `~/.claude/tierwise.json`
 
 ```json
 {
@@ -41,7 +41,7 @@ Defaults with no file: `opus` / `sonnet` / `haiku`.
 
 ## Setup script
 
-`scripts/setup.py` writes the config file and generates the seven `mo-*` agents with the chosen models pinned in their frontmatter. It needs only Python 3. Running it again adds to the existing file in that scope.
+`scripts/setup.py` writes the config file and generates the seven `tw-*` agents with the chosen models pinned in their frontmatter. It needs only Python 3. Running it again adds to the existing file in that scope.
 
 ```bash
 # Defaults (opus / sonnet / haiku) for this project
@@ -151,7 +151,7 @@ Be aware that Anthropic does not support routing Claude Code to non-Claude model
 `scripts/gate.py` runs the gates and records which exact state of the code passed.
 
 ```bash
-python3 scripts/gate.py --plan .orchestrator/plans/<slug>.md   # run them
+python3 scripts/gate.py --plan .tierwise/plans/<slug>.md   # run them
 python3 scripts/gate.py --status                               # last result, and whether HEAD may be pushed
 python3 scripts/gate.py --clear                                # forget the last result
 ```
@@ -172,7 +172,7 @@ With the plugin installed, a hook checks every `git push` that Claude runs:
 | The last run passed, but `HEAD` holds different code than the code that passed | Blocked |
 | The last run passed and `HEAD` matches it | Allowed |
 
-Changes under `.orchestrator/` are ignored in the comparison. To stop the guard for a repository, run `gate.py --clear` yourself; the skill tells Claude not to do that on its own.
+Changes under `.tierwise/` are ignored in the comparison. To stop the guard for a repository, run `gate.py --clear` yourself; the skill tells Claude not to do that on its own.
 
 Limits to know about:
 

@@ -4,7 +4,7 @@ description: Route development work to the cheapest model that can do it well, a
 argument-hint: "[task description]"
 ---
 
-# Model Orchestrator
+# Tierwise
 
 You are the router. Spend expensive tokens only where they change the outcome: on decisions. Everything that is "follow these instructions" goes to a cheaper model, and nothing is pushed until the code has passed its gates. Keep your own context light: delegate reading, planning, editing and debugging, and never re-read what a subagent already summarized.
 
@@ -14,29 +14,29 @@ Task: $ARGUMENTS
 
 | Role | Agent | Tier | Does |
 |---|---|---|---|
-| scout | `mo-scout` | small | Read-only map of the relevant code, conventions and check commands |
-| architect | `mo-architect` | top | Decisions and the plan file; last stop for escalations |
-| tester | `mo-tester` | mid | Tests written from the plan before the code exists |
-| builder | `mo-builder` | mid | Implements one planned task |
-| runner | `mo-runner` | small | Mechanical chores |
-| debugger | `mo-debugger` | mid | Root cause and minimal fix for a failing check |
-| reviewer | `mo-reviewer` | mid | Read-only review of the final diff against the plan |
+| scout | `tw-scout` | small | Read-only map of the relevant code, conventions and check commands |
+| architect | `tw-architect` | top | Decisions and the plan file; last stop for escalations |
+| tester | `tw-tester` | mid | Tests written from the plan before the code exists |
+| builder | `tw-builder` | mid | Implements one planned task |
+| runner | `tw-runner` | small | Mechanical chores |
+| debugger | `tw-debugger` | mid | Root cause and minimal fix for a failing check |
+| reviewer | `tw-reviewer` | mid | Read-only review of the final diff against the plan |
 
 Scripts and references named below are in this skill's directory.
 
 ## 1. Resolve models
 
-Run `python3 scripts/run_tier.py --show`. It reads `.claude/model-orchestrator.json` (project) or `~/.claude/model-orchestrator.json` (user) and prints, for each role, a `kind` and a `value`:
+Run `python3 scripts/run_tier.py --show`. It reads `.claude/tierwise.json` (project) or `~/.claude/tierwise.json` (user) and prints, for each role, a `kind` and a `value`:
 
 | Kind | Meaning | How to run the role |
 |---|---|---|
 | `alias` | `fable`, `opus`, `sonnet` or `haiku` | Spawn the role's agent and pass the alias as `model`. |
-| `model` | Any other model ID | The Agent tool's `model` parameter accepts only aliases, so the ID must be pinned in `.claude/agents/mo-<role>.md` or `~/.claude/agents/mo-<role>.md`. Spawn that agent without a `model` parameter. If the file is missing, tell the user to run `scripts/setup.py` and use the tier's default alias meanwhile. |
+| `model` | Any other model ID | The Agent tool's `model` parameter accepts only aliases, so the ID must be pinned in `.claude/agents/tw-<role>.md` or `~/.claude/agents/tw-<role>.md`. Spawn that agent without a `model` parameter. If the file is missing, tell the user to run `scripts/setup.py` and use the tier's default alias meanwhile. |
 | `command` | An external, non-Claude coding agent CLI | `python3 scripts/run_tier.py --role <role> --brief "<brief>"` through Bash. |
 
 Defaults are `opus` (top), `sonnet` (mid), `haiku` (small). The script never returns `fable` unless the config allows it. An instruction from the user in this conversation ("plan with fable", "review with opus") overrides the file for this run; do not choose `fable` on your own.
 
-For an agent, use the first available: the project or user agent `mo-<role>`, then the plugin agent `model-orchestrator:mo-<role>`. If neither exists, spawn `general-purpose` with the role's alias and paste the body of `agents/mo-<role>.md` at the top of the prompt.
+For an agent, use the first available: the project or user agent `tw-<role>`, then the plugin agent `tierwise:tw-<role>`. If neither exists, spawn `general-purpose` with the role's alias and paste the body of `agents/tw-<role>.md` at the top of the prompt.
 
 Details, including non-Claude models: `references/configuration.md`.
 
@@ -56,13 +56,13 @@ When unsure between two rows, start with the cheaper one: escalation is cheap, o
 
 ## 3. Scout (small)
 
-Before planning in a codebase that has not been mapped for this request, spawn the scout with the request and the path `.orchestrator/context/<slug>.md`. It records the relevant files, conventions, test setup, check commands and which checks pass right now. Skip the scout for a tiny or empty repository, or when a context file for this area already exists.
+Before planning in a codebase that has not been mapped for this request, spawn the scout with the request and the path `.tierwise/context/<slug>.md`. It records the relevant files, conventions, test setup, check commands and which checks pass right now. Skip the scout for a tiny or empty repository, or when a context file for this area already exists.
 
 A check that already fails before any change is a baseline failure. Tell the user now; do not let it be discovered at the gates and blamed on the new work.
 
 ## 4. Plan (top)
 
-Spawn the architect with the user's request verbatim, constraints from the conversation, the context file path and the plan path `.orchestrator/plans/<slug>.md`. The plan follows `references/plan-format.md`: decisions, a risk level, the gates, and self-contained tasks, each with a role, a test mode and an acceptance check.
+Spawn the architect with the user's request verbatim, constraints from the conversation, the context file path and the plan path `.tierwise/plans/<slug>.md`. The plan follows `references/plan-format.md`: decisions, a risk level, the gates, and self-contained tasks, each with a role, a test mode and an acceptance check.
 
 Show the user the task list (id, role, one line each), the risk level, the gates and any open questions, then ask for a go-ahead before building, unless they already said to proceed without asking. This is the cheapest place to catch a wrong direction.
 
@@ -82,7 +82,7 @@ For each task, in dependency order:
 When all tasks are done, run:
 
 ```
-python3 scripts/gate.py --plan .orchestrator/plans/<slug>.md
+python3 scripts/gate.py --plan .tierwise/plans/<slug>.md
 ```
 
 It runs every gate in order (lint, types, tests, build, smoke check, as the config or the plan's `## Gates` section lists them), stops at the first failure, and records the exact state of the code that passed. This is the only thing that counts as "the checks pass"; an agent saying so does not.

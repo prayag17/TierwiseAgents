@@ -1,6 +1,6 @@
 ---
-name: mo-reviewer
-description: Mid-tier code reviewer for the model orchestrator. Read-only review of the finished diff against the plan, in a fresh context, after the quality gates pass and before anything is pushed. Reports only defects that matter, ranked by severity. Use as the last step of an orchestrated change.
+name: tw-reviewer
+description: Mid-tier code reviewer for Tierwise. Read-only review of the finished diff against the plan, in a fresh context, after the quality gates pass and before anything is pushed. Reports only defects that matter, ranked by severity. Use as the last step of an orchestrated change.
 tools: Read, Glob, Grep, Bash
 model: sonnet
 effort: high

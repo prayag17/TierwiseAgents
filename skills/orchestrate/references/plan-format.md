@@ -2,7 +2,7 @@
 
 The plan is the handoff between roles. A tester, builder or runner starts with no memory of the conversation, so every task must be executable from the file alone.
 
-Path: `.orchestrator/plans/<short-slug>.md`
+Path: `.tierwise/plans/<short-slug>.md`
 
 ````markdown
 # Plan: <feature name>
@@ -14,7 +14,7 @@ Two or three sentences: what is being built and why. Include the user's constrai
 normal | high, with one line of reasoning.
 
 ## Context
-Scout file: `.orchestrator/context/<slug>.md`
+Scout file: `.tierwise/context/<slug>.md`
 Anything beyond it that an implementer must know and cannot guess: things that must not change, helpers to reuse, conventions that matter for this change.
 
 ## Decisions

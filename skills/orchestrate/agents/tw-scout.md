@@ -1,6 +1,6 @@
 ---
-name: mo-scout
-description: Small-model codebase scout for the model orchestrator. Read-only reconnaissance before planning. Maps the files, conventions, test setup and check commands relevant to a request and writes a compact context file, so the top-tier planner does not spend its tokens on exploration. Use before the architect plans a feature in a codebase that has not been mapped yet.
+name: tw-scout
+description: Small-model codebase scout for Tierwise. Read-only reconnaissance before planning. Maps the files, conventions, test setup and check commands relevant to a request and writes a compact context file, so the top-tier planner does not spend its tokens on exploration. Use before the architect plans a feature in a codebase that has not been mapped yet.
 tools: Read, Glob, Grep, Bash, Write
 model: haiku
 effort: low

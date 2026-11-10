@@ -1,6 +1,6 @@
 ---
-name: mo-runner
-description: Small-model worker for the model orchestrator. Does mechanical, low-judgment chores quickly and cheaply, such as renaming symbols or files, moving and reorganizing files, updating imports, formatting, bulk find and replace, and boilerplate copied from a named example. Use when the steps fully determine the result.
+name: tw-runner
+description: Small-model worker for Tierwise. Does mechanical, low-judgment chores quickly and cheaply, such as renaming symbols or files, moving and reorganizing files, updating imports, formatting, bulk find and replace, and boilerplate copied from a named example. Use when the steps fully determine the result.
 tools: Read, Glob, Grep, Bash, Write, Edit
 model: haiku
 effort: low

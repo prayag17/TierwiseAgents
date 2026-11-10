@@ -7,7 +7,7 @@ instructions plus the task brief), runs the command without a shell, and
 prints the exit code and the tail of the output.
 
     python3 run_tier.py --show
-    python3 run_tier.py --role builder --brief "Plan: .orchestrator/plans/x.md. Do task T2."
+    python3 run_tier.py --role builder --brief "Plan: .tierwise/plans/x.md. Do task T2."
     python3 run_tier.py --role runner --brief-file brief.md --timeout 3600
 
 Placeholders in the command:
@@ -26,7 +26,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from mo_config import ROLE_TIER, SKILL_DIR, agent_name, load_config, resolve
+from tw_config import ROLE_TIER, SKILL_DIR, agent_name, load_config, resolve
 
 
 def role_text(role):
@@ -76,7 +76,7 @@ def main():
     stdin_text = None
     try:
         if any("{prompt_file}" in a for a in argv):
-            with tempfile.NamedTemporaryFile("w", suffix=".md", prefix="mo-brief-",
+            with tempfile.NamedTemporaryFile("w", suffix=".md", prefix="tw-brief-",
                                              delete=False, encoding="utf-8") as f:
                 f.write(prompt)
                 prompt_file = f.name

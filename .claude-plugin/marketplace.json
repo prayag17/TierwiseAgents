@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "name": "model-orchestrator",
+      "name": "tierwise",
       "source": "./",
       "description": "Routes development work to the cheapest model that can do it and gates it with tests and review before it is pushed."
     }

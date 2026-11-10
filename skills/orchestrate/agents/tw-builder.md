@@ -1,6 +1,6 @@
 ---
-name: mo-builder
-description: Mid-tier implementer for the model orchestrator. Executes one task from a written plan file exactly as specified, runs its acceptance check and reports. Use for implementing planned features, writing tests and routine bug fixes where the approach is already decided.
+name: tw-builder
+description: Mid-tier implementer for Tierwise. Executes one task from a written plan file exactly as specified, runs its acceptance check and reports. Use for implementing planned features, writing tests and routine bug fixes where the approach is already decided.
 tools: Read, Glob, Grep, Bash, Write, Edit
 model: sonnet
 effort: medium

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Configure the model orchestrator.
+"""Configure Tierwise.
 
-Writes model-orchestrator.json and generates the mo-* agents with the chosen
+Writes tierwise.json and generates the tw-* agents with the chosen
 models pinned in their frontmatter. Standard library only.
 
     python3 setup.py
@@ -18,7 +18,7 @@ import shlex
 import sys
 from pathlib import Path
 
-from mo_config import (ALIASES, CONFIG_NAME, ROLE_TIER, SKILL_DIR, TIER_DEFAULTS,
+from tw_config import (ALIASES, CONFIG_NAME, ROLE_TIER, SKILL_DIR, TIER_DEFAULTS,
                        agent_name, load_config, resolve)
 
 MODEL_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/\[\]@-]*$")

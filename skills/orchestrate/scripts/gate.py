@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Quality gates for the model orchestrator.
+"""Quality gates for Tierwise.
 
 Runs the project's checks (lint, types, tests, build, smoke test) in order and
 records which exact state of the code passed. A push is allowed only when the
 commit being pushed matches a state that passed.
 
-    python3 gate.py --plan .orchestrator/plans/x.md   run the gates
+    python3 gate.py --plan .tierwise/plans/x.md   run the gates
     python3 gate.py --status                          show the last result
     python3 gate.py --clear                           forget the last result
     python3 gate.py --hook                            PreToolUse hook mode (reads JSON on stdin)
 
-Gates come from "gates" in model-orchestrator.json; if that is empty, from the
+Gates come from "gates" in tierwise.json; if that is empty, from the
 "## Gates" section of the plan file, one per line:  - name: `command`
 
 Standard library only.
@@ -26,11 +26,11 @@ import tempfile
 import time
 from pathlib import Path
 
-from mo_config import load_config
+from tw_config import load_config
 
 GATE_LINE = re.compile(r"^\s*[-*]\s*\**([^:`*]+?)\**\s*:\s*`(.+)`\s*$")
 PUSH = re.compile(r"\bgit\s+(?:-{1,2}[^\s]+\s+(?:[^\s-][^\s]*\s+)?)*push\b")
-EXCLUDE = ":(exclude,top).orchestrator"
+EXCLUDE = ":(exclude,top).tierwise"
 
 
 def git(*args, cwd=None, env=None, check=True):
@@ -47,7 +47,7 @@ def repo_root(cwd=None):
 
 def state_path(root):
     git_dir = git("rev-parse", "--absolute-git-dir", cwd=root).stdout.strip()
-    return Path(git_dir) / "model-orchestrator" / "gate.json"
+    return Path(git_dir) / "tierwise" / "gate.json"
 
 
 def worktree_tree(root):
@@ -61,7 +61,7 @@ def worktree_tree(root):
 
 
 def same_code(root, tree, rev="HEAD"):
-    """True when rev holds the same files as tree, ignoring .orchestrator/."""
+    """True when rev holds the same files as tree, ignoring .tierwise/."""
     r = git("diff", "--quiet", tree, rev, "--", ".", EXCLUDE, cwd=root, check=False)
     return r.returncode == 0
 
@@ -96,7 +96,7 @@ def run_gates(args, root):
     if not gates and args.plan:
         gates, source = gates_from_plan(args.plan), f"plan {args.plan}"
     if not gates:
-        sys.exit("error: no gates defined. Add \"gates\" to .claude/model-orchestrator.json "
+        sys.exit("error: no gates defined. Add \"gates\" to .claude/tierwise.json "
                  "or a \"## Gates\" section to the plan (- name: `command`). "
                  "A gate run with nothing to check does not count as a pass.")
 
@@ -169,7 +169,7 @@ def hook():
     except Exception:  # a broken check must not block unrelated work
         return
     if not allowed:
-        print(f"Push blocked by the model orchestrator: {why}. Run the quality gates "
+        print(f"Push blocked by Tierwise: {why}. Run the quality gates "
               f"(python3 {Path(__file__).resolve()} --plan <plan file>), commit the state "
               "that passed, then push. Do not clear the gate record yourself; only the user "
               "may decide to push without passing gates.", file=sys.stderr)

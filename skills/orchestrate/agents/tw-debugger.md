@@ -1,6 +1,6 @@
 ---
-name: mo-debugger
-description: Mid-tier debugger for the model orchestrator. Finds the root cause of a failing quality gate, failing test or reviewer-reported defect and applies the smallest fix. Use when a check fails and the cause is not obvious from the output, instead of asking the builder to try again.
+name: tw-debugger
+description: Mid-tier debugger for Tierwise. Finds the root cause of a failing quality gate, failing test or reviewer-reported defect and applies the smallest fix. Use when a check fails and the cause is not obvious from the output, instead of asking the builder to try again.
 tools: Read, Glob, Grep, Bash, Write, Edit
 model: sonnet
 effort: high

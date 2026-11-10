@@ -1,7 +1,7 @@
 {
-  "name": "model-orchestrator",
-  "displayName": "Model Orchestrator",
-  "version": "0.2.0",
+  "name": "tierwise",
+  "displayName": "Tierwise",
+  "version": "0.3.0",
   "description": "Routes development work to the cheapest model that can do it and gates it with tests and review before it is pushed.",
   "author": {
     "name": "prayag17",
@@ -10,19 +10,23 @@
   "repository": "https://github.com/prayag17/ModelOrchestrator",
   "license": "MIT",
   "keywords": [
-    "orchestration",
-    "subagents",
     "model-routing",
-    "cost",
-    "tokens"
+    "cost-optimization",
+    "token-savings",
+    "subagents",
+    "multi-agent",
+    "orchestration",
+    "tdd",
+    "code-review",
+    "quality-gates"
   ],
   "agents": [
-    "./skills/orchestrate/agents/mo-architect.md",
-    "./skills/orchestrate/agents/mo-scout.md",
-    "./skills/orchestrate/agents/mo-tester.md",
-    "./skills/orchestrate/agents/mo-builder.md",
-    "./skills/orchestrate/agents/mo-runner.md",
-    "./skills/orchestrate/agents/mo-debugger.md",
-    "./skills/orchestrate/agents/mo-reviewer.md"
+    "./skills/orchestrate/agents/tw-architect.md",
+    "./skills/orchestrate/agents/tw-scout.md",
+    "./skills/orchestrate/agents/tw-tester.md",
+    "./skills/orchestrate/agents/tw-builder.md",
+    "./skills/orchestrate/agents/tw-runner.md",
+    "./skills/orchestrate/agents/tw-debugger.md",
+    "./skills/orchestrate/agents/tw-reviewer.md"
   ]
 }
