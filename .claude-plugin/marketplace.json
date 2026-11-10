@@ -1,0 +1,14 @@
+{
+  "name": "prayag17",
+  "description": "Cost-aware model routing for Claude Code.",
+  "owner": {
+    "name": "prayag17"
+  },
+  "plugins": [
+    {
+      "name": "model-orchestrator",
+      "source": "./",
+      "description": "Routes work to the cheapest model tier that can do it: a top model plans, a mid model builds, a small model handles chores."
+    }
+  ]
+}
