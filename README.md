@@ -35,7 +35,7 @@ flowchart LR
 ## Quick start
 
 ```
-/plugin marketplace add prayag17/ModelOrchestrator
+/plugin marketplace add prayag17/TierwiseAgents
 /plugin install tierwise-agents@prayag17
 /tierwise-agents:orchestrate add rate limiting to the public API
 ```
@@ -68,7 +68,7 @@ flowchart LR
 ### As a plugin (recommended)
 
 ```
-/plugin marketplace add prayag17/ModelOrchestrator
+/plugin marketplace add prayag17/TierwiseAgents
 /plugin install tierwise-agents@prayag17
 ```
 
@@ -77,8 +77,8 @@ Then run `/tierwise-agents:orchestrate <task>`, or just describe a multi-step fe
 ### As a standalone skill
 
 ```bash
-git clone https://github.com/prayag17/ModelOrchestrator
-cp -r ModelOrchestrator/skills/orchestrate ~/.claude/skills/orchestrate   # or .claude/skills/ in a project
+git clone https://github.com/prayag17/TierwiseAgents
+cp -r TierwiseAgents/skills/orchestrate ~/.claude/skills/orchestrate   # or .claude/skills/ in a project
 python3 ~/.claude/skills/orchestrate/scripts/setup.py --scope user         # optional: installs the agents
 ```
 
