@@ -56,7 +56,23 @@ or write `.claude/model-orchestrator.json` yourself:
 }
 ```
 
-Fable is never used unless `allowFable` is set or you ask for it in the request. Any model ID that `claude --model` accepts works, including models behind your own gateway. See [configuration](skills/orchestrate/references/configuration.md) for details.
+Fable is never used unless `allowFable` is set or you ask for it in the request. Any model ID that `claude --model` accepts works.
+
+### Non-Claude models
+
+Any tier can run on another vendor's or a local model by pointing it at a coding agent CLI you already use (Codex CLI, Gemini CLI, opencode, aider, or your own script):
+
+```json
+{
+  "tiers": {
+    "top": "opus",
+    "mid": { "command": "codex exec --full-auto -m <model> {prompt}" },
+    "small": { "command": "opencode run -m <provider/model> {prompt}" }
+  }
+}
+```
+
+The orchestrator hands that tool the same brief a Claude subagent would get, runs the acceptance check itself, and escalates on failure as usual. Models behind a Claude-compatible gateway also work by ID. Details and caveats are in [configuration](skills/orchestrate/references/configuration.md#non-claude-models).
 
 For a single run, just say so: "orchestrate this, plan with fable".
 
@@ -75,6 +91,7 @@ skills/orchestrate/
   agents/                mo-architect, mo-builder, mo-runner
   references/            plan format, configuration
   scripts/setup.py       writes config and pins models into the agents
+  scripts/run_tier.py    runs a tier on an external (non-Claude) CLI
 ```
 
 ## License

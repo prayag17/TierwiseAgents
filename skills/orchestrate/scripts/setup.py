@@ -9,6 +9,7 @@ Standard library only.
 import argparse
 import json
 import re
+import shlex
 import sys
 from pathlib import Path
 
@@ -26,6 +27,9 @@ def parse_args():
     p.add_argument("--top", help="model for planning (default: opus, or fable with --allow-fable)")
     p.add_argument("--mid", help="model for implementation (default: sonnet)")
     p.add_argument("--small", help="model for mechanical chores (default: haiku)")
+    for tier in DEFAULTS:
+        p.add_argument(f"--{tier}-cmd", metavar="COMMAND",
+                       help=f"run the {tier} tier on an external CLI, e.g. a non-Claude coding agent")
     p.add_argument("--allow-fable", action="store_true",
                    help="allow Fable; plans with it unless --top is given")
     p.add_argument("--dry-run", action="store_true", help="print the result, write nothing")
@@ -53,8 +57,18 @@ def main():
         value = getattr(args, tier)
         if value:
             tiers[tier] = value.strip()
+        command = getattr(args, f"{tier}_cmd")
+        if command:
+            if value:
+                sys.exit(f"error: give --{tier} or --{tier}-cmd, not both")
+            try:
+                if not shlex.split(command):
+                    raise ValueError("empty command")
+            except ValueError as e:
+                sys.exit(f"error: --{tier}-cmd: {e}")
+            tiers[tier] = {"command": command}
     for tier, model in tiers.items():
-        if not MODEL_ID.match(model):
+        if isinstance(model, str) and not MODEL_ID.match(model):
             sys.exit(f"error: --{tier} {model!r} is not a valid model name")
     if "fable" in tiers.values() and not args.allow_fable:
         sys.exit("error: a tier is set to fable; pass --allow-fable to confirm")
@@ -65,6 +79,8 @@ def main():
 
     outputs = {config_path: json.dumps(config, indent=2) + "\n"}
     for tier, role in ROLES.items():
+        if isinstance(tiers[tier], dict):
+            continue  # external command: no Claude agent to generate
         template = TEMPLATES / f"{role}.md"
         if not template.is_file():
             sys.exit(f"error: missing agent template {template}")
@@ -72,7 +88,9 @@ def main():
             template.read_text(encoding="utf-8"), tiers[tier])
 
     for tier, role in ROLES.items():
-        print(f"{tier:<5} {role:<13} -> {tiers[tier]}")
+        value = tiers[tier]
+        shown = f"command: {value['command']}" if isinstance(value, dict) else value
+        print(f"{tier:<5} {role:<13} -> {shown}")
     for path, content in outputs.items():
         if args.dry_run:
             print(f"would write {path}")
